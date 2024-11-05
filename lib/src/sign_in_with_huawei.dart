@@ -1,9 +1,8 @@
 import 'dart:async';
-
 import 'package:flutter/services.dart';
 import 'package:sign_in_with_huawei/sign_in_with_huawei.dart';
 
-const _kMessageChannel = 'com.fluttercandies/sign_in_with_huawei';
+const kMessageChannel = 'com.fluttercandies/sign_in_with_huawei';
 
 class SignInWithHuawei {
   SignInWithHuawei._();
@@ -12,7 +11,7 @@ class SignInWithHuawei {
 
   static SignInWithHuawei get instance => _instance;
 
-  final _channel = const MethodChannel(_kMessageChannel);
+  final _channel = const MethodChannel(kMessageChannel);
 
   /// 华为账号登录(获取 UnionID/OpenID)
   ///
@@ -39,6 +38,25 @@ class SignInWithHuawei {
       },
     );
     final response = HuaweiAuthByIdResponse.fromMap(result);
+    return response;
+  }
+
+  /// 获取匿名手机号
+  Future<GetAnonymousPhoneResponse> getAnonymousPhone({
+    bool forceAuthorization = true,
+    String? state,
+    String? nonce,
+    IdTokenSignAlgorithm idTokenAlg = IdTokenSignAlgorithm.PS256,
+  }) async {
+    final result = await _channel.invokeMethod(
+      'getAnonymousPhone',
+      <String, dynamic>{
+        'forceAuthorization': forceAuthorization,
+        if (state != null) 'state': state,
+        if (nonce != null) 'nonce': nonce,
+      },
+    );
+    final response = GetAnonymousPhoneResponse.fromMap(result);
     return response;
   }
 }

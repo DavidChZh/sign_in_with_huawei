@@ -11,8 +11,10 @@ import {
 import { authentication } from '@kit.AccountKit';
 import { util } from '@kit.ArkTS';
 import { common } from '@kit.AbilityKit';
+import { QuickLoginFactory } from './QuickLoginFactory';
+import StandardMessageCodec from '@ohos/flutter_ohos/src/main/ets/plugin/common/StandardMessageCodec';
 
-const MESSAGES_CHANNEL = "com.fluttercandies/sign_in_with_huawei";
+export const MESSAGES_CHANNEL = "com.fluttercandies/sign_in_with_huawei";
 
 interface IResponse {
   errorCode?: number;
@@ -33,6 +35,9 @@ export default class SignInWithHuaweiPlugin implements FlutterPlugin, MethodCall
   }
 
   onAttachedToEngine(binding: FlutterPluginBinding): void {
+    binding.getPlatformViewRegistry()?.
+    registerViewFactory('com.fluttercandies/QuickLoginView',
+      new QuickLoginFactory(binding.getBinaryMessenger(), StandardMessageCodec.INSTANCE));
     this.channel = new MethodChannel(binding.getBinaryMessenger(), MESSAGES_CHANNEL);
     this.channel.setMethodCallHandler(this)
   }
@@ -54,8 +59,32 @@ export default class SignInWithHuaweiPlugin implements FlutterPlugin, MethodCall
   onMethodCall(call: MethodCall, result: MethodResult): void {
     if (call.method == "authById") {
       this.authById(call, result)
+    } else if (call.method == "getAnonymousPhone") {
+      this.getAnonymousPhone(call, result);
     } else {
       result.notImplemented()
+    }
+  }
+
+
+  async getAnonymousPhone(call: MethodCall, result: MethodResult): Promise<void> {
+    try {
+      const request = this.composeAuthorizationIdRequest(call)
+      const controller = new authentication.AuthenticationController(this.context!);
+      const response: authentication.AuthorizationWithHuaweiIDResponse = await controller.executeRequest(request);
+      result.success(this.responseToMap({
+        data: {
+          "state": response.state,
+          "openID": response.data?.openID,
+          "unionID": response.data?.unionID,
+          "anonymousPhone": response.data?.extraInfo?.quickLoginAnonymousPhone as string ?? ''
+        }
+      }))
+    } catch (e) {
+      result.success(this.responseToMap({
+        errorCode: e.code,
+        errorMsg: e.message
+      }))
     }
   }
 
@@ -79,6 +108,21 @@ export default class SignInWithHuaweiPlugin implements FlutterPlugin, MethodCall
         errorMsg: e.message
       }))
     }
+  }
+
+  composeAuthorizationIdRequest(call: MethodCall): authentication.LoginWithHuaweiIDRequest {
+    const forceAuthorization: boolean = call.argument("forceAuthorization");
+    const state: string | null = call.argument("state");
+    const nonce: string | null = call.argument("nonce");
+    const idTokenAlg: string = call.argument("idTokenSignAlgorithm");
+    const provider = new authentication.HuaweiIDProvider();
+    const loginRequest = provider.createAuthorizationWithHuaweiIDRequest();
+    loginRequest.forceAuthorization = forceAuthorization;
+    loginRequest.state = state ? state : util.generateRandomUUID();
+    loginRequest.nonce = nonce ? nonce : util.generateRandomUUID();
+    loginRequest.idTokenSignAlgorithm = this.mapIdTokenAlgorithm(idTokenAlg);
+    loginRequest.scopes = ['quickLoginAnonymousPhone'];
+    return loginRequest
   }
 
   composeIdRequest(call: MethodCall): authentication.LoginWithHuaweiIDRequest {
@@ -114,3 +158,5 @@ export default class SignInWithHuaweiPlugin implements FlutterPlugin, MethodCall
     return map
   }
 }
+
+

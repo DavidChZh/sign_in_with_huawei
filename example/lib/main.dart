@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 
 import 'package:sign_in_with_huawei/sign_in_with_huawei.dart';
@@ -20,14 +23,32 @@ class _MyAppState extends State<MyApp> {
     super.initState();
   }
 
+
   Future<void> loginWithHuaweiId() async {
-    final response = await SignInWithHuawei.instance.authById(
-      forceLogin: true,
-      state: "any state",
-      nonce: "any nonce",
-      idTokenAlg: IdTokenSignAlgorithm.PS256,
-    );
-    print(response);
+    final response = await SignInWithHuawei.instance.authById();
+    setState(() {
+      receivedData = response.toString();
+    });
+  }
+
+  Future<void> setStyle() async {
+    final response = await SignInWithHuawei.instance.getAnonymousPhone();
+    setState(() {
+      receivedData = response.toString();
+    });
+  }
+
+  String receivedData = '';
+  QuickLoginViewController? _controller;
+
+  void _onCustomOhosViewCreated(QuickLoginViewController controller) {
+    _controller = controller;
+    _controller?.ohosDataStream.listen((data) {
+      //接收到来自OHOS端的数据
+      setState(() {
+        receivedData = data;
+      });
+    });
   }
 
   @override
@@ -37,11 +58,22 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: Center(
-          child: ElevatedButton(
-            onPressed: loginWithHuaweiId,
-            child: const Text('Login With Huawei ID'),
-          ),
+        body: Column(
+          children: [
+            ElevatedButton(
+              onPressed: loginWithHuaweiId,
+              child: const Text('Login With Huawei ID'),
+            ),
+            ElevatedButton(
+              onPressed: setStyle,
+              child: const Text('获取匿名手机号'),
+            ),
+            Container(
+              height: 100,
+              child: QuickLoginOhosView(_onCustomOhosViewCreated,loading: false,),
+            ),
+            Text(receivedData),
+          ],
         ),
       ),
     );

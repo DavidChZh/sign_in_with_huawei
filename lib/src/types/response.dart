@@ -30,3 +30,25 @@ class HuaweiAuthByIdResponse extends HuaweiAuthResponse {
     return 'HuaweiAuthByIdResponse{state: $state, authCode: $authCode, idToken: $idToken, openID: $openID, unionID: $unionID, errorCode: $errorCode, errorMsg: $errorMsg}';
   }
 }
+
+class GetAnonymousPhoneResponse extends HuaweiAuthResponse {
+  final String? state;
+  final String? authCode;
+  final String? idToken;
+  final String? openID;
+  final String? unionID;
+  final String? anonymousPhone;
+  GetAnonymousPhoneResponse.fromMap(Map response)
+      : state = response["state"],
+        authCode = response["authCode"],
+        idToken = response["idToken"],
+        openID = response["openID"],
+        unionID = response["unionID"],
+        anonymousPhone = response["anonymousPhone"],
+        super._(response[keyErrorCode], response[keyErrorMsg]);
+
+  @override
+  String toString() {
+    return '{state: $state, authCode: $authCode, idToken: $idToken, openID: $openID, unionID: $unionID,anonymousPhone: $anonymousPhone, errorCode: $errorCode, errorMsg: $errorMsg}';
+  }
+}
